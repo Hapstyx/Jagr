@@ -26,6 +26,7 @@ import org.sourcegrade.jagr.api.rubric.RubricProvider;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * The configuration of a rubric provider via {@link RubricProvider#configure(RubricConfiguration)}.
@@ -40,7 +41,7 @@ public interface RubricConfiguration {
      *
      * @return The transformers to apply to every matching submission
      */
-    Map<ClassTransformerOrder, List<ClassTransformer>> getTransformers();
+    Map<ClassTransformerOrder, List<Supplier<ClassTransformer>>> getTransformers();
 
     /**
      * The files that will be overridden in the submission from the solution.
@@ -60,6 +61,13 @@ public interface RubricConfiguration {
      */
     @Nullable String getExportBuildScriptPath();
 
+    RubricConfiguration addTransformer(Supplier<ClassTransformer> transformerSupplier,
+                                       ClassTransformerOrder classTransformerOrder);
+
+    default RubricConfiguration addTransformer(Supplier<ClassTransformer> transformerSupplier) {
+        return addTransformer(transformerSupplier, ClassTransformerOrder.DEFAULT);
+    }
+
     /**
      * Adds a transformer to the list of transformers to apply to every matching submission.
      *
@@ -67,7 +75,9 @@ public interface RubricConfiguration {
      * @param order       The {@link ClassTransformerOrder} in which to run the provided transformer
      * @return {@code this}
      */
-    RubricConfiguration addTransformer(ClassTransformer transformer, ClassTransformerOrder order);
+    default RubricConfiguration addTransformer(ClassTransformer transformer, ClassTransformerOrder order) {
+        return addTransformer(() -> transformer, order);
+    }
 
     /**
      * Adds a transformer to the list of transformers to apply to every matching submission.

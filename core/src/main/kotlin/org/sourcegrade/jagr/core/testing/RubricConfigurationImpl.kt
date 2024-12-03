@@ -23,19 +23,20 @@ import org.sourcegrade.jagr.api.testing.ClassTransformer
 import org.sourcegrade.jagr.api.testing.ClassTransformerOrder
 import org.sourcegrade.jagr.api.testing.RubricConfiguration
 import java.util.Collections
+import java.util.function.Supplier
 
 class RubricConfigurationImpl : RubricConfiguration {
-    private val transformers = mutableMapOf<ClassTransformerOrder, MutableList<ClassTransformer>>()
+    private val transformers = mutableMapOf<ClassTransformerOrder, MutableList<Supplier<ClassTransformer>>>()
     private val fileNameSolutionOverrides = mutableListOf<String>()
     private var exportBuildScriptPath: String? = null
-    override fun getTransformers(): Map<ClassTransformerOrder, List<ClassTransformer>> =
+    override fun getTransformers(): Map<ClassTransformerOrder, List<Supplier<ClassTransformer>>> =
         transformers.asSequence().map { (a, b) -> a to Collections.unmodifiableList(b) }.toMap()
 
     override fun getFileNameSolutionOverrides(): List<String> = Collections.unmodifiableList(fileNameSolutionOverrides)
 
     override fun getExportBuildScriptPath() = exportBuildScriptPath
 
-    override fun addTransformer(transformer: ClassTransformer, order: ClassTransformerOrder): RubricConfiguration {
+    override fun addTransformer(transformer: Supplier<ClassTransformer>, order: ClassTransformerOrder): RubricConfiguration {
         transformers.computeIfAbsent(order) { mutableListOf() } += transformer
         return this
     }

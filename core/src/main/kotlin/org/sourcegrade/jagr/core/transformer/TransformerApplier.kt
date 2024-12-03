@@ -27,6 +27,7 @@ import org.sourcegrade.jagr.api.testing.ClassTransformer
 import org.sourcegrade.jagr.api.testing.ClassTransformerOrder
 import org.sourcegrade.jagr.core.compiler.java.CompiledClass
 import org.sourcegrade.jagr.core.compiler.java.JavaCompiledContainer
+import java.util.function.Supplier
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.javaMethod
 
@@ -52,25 +53,25 @@ private class TransformerApplierImpl(private val transformer: ClassTransformer) 
     )
 }
 
-private class MultiTransformerApplierImpl(private vararg val transformers: ClassTransformer) : TransformationApplier {
+private class MultiTransformerApplierImpl(private vararg val transformers: Supplier<ClassTransformer>) : TransformationApplier {
     override fun transform(result: JavaCompiledContainer, classLoader: ClassLoader): JavaCompiledContainer {
         var classes = result.runtimeResources.classes
         for (transformer in transformers) {
-            classes = transformer.transform(classes, classLoader)
+            classes = transformer.get().transform(classes, classLoader)
         }
         return result.copy(runtimeResources = result.runtimeResources.copy(classes = classes))
     }
 }
 
-fun applierOf(vararg transformers: ClassTransformer): TransformationApplier {
+fun applierOf(vararg transformers: Supplier<ClassTransformer>): TransformationApplier {
     return when (transformers.size) {
         0 -> NoOpTransformerAppliedImpl
-        1 -> TransformerApplierImpl(transformers[0])
+        1 -> TransformerApplierImpl(transformers[0].get())
         else -> MultiTransformerApplierImpl(*transformers)
     }
 }
 
-fun Map<ClassTransformerOrder, List<ClassTransformer>>.createApplier(
+fun Map<ClassTransformerOrder, List<Supplier<ClassTransformer>>>.createApplier(
     order: ClassTransformerOrder,
     predicate: (JavaCompiledContainer) -> Boolean,
 ): TransformationApplier {
