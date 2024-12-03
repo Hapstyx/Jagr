@@ -82,9 +82,10 @@ fun Map<ClassTransformerOrder, List<Supplier<ClassTransformer>>>.createApplier(
 }
 
 fun ClassTransformer.transform(classes: Map<String, CompiledClass>, classLoader: ClassLoader): Map<String, CompiledClass> {
-    return classes.mapValues { (_, compiledClass) ->
-        compiledClass.transformed(transform(compiledClass.bytecode, classLoader))
-    }
+    return classes.map { (_, compiledClass) ->
+        val transformedClass = compiledClass.transformed(transform(compiledClass.bytecode, classLoader))
+        transformedClass.className to transformedClass
+    }.toMap()
 }
 
 fun ClassTransformer.transform(byteArray: ByteArray, classLoader: ClassLoader): ByteArray {
