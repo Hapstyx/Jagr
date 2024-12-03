@@ -45,6 +45,7 @@ import org.sourcegrade.jagr.core.transformer.plus
 import org.sourcegrade.jagr.launcher.io.GraderJar
 import org.sourcegrade.jagr.launcher.io.GradingBatch
 import org.sourcegrade.jagr.launcher.io.ResourceContainer
+import java.util.function.Supplier
 
 data class CompiledBatch(
     val batch: GradingBatch,
@@ -61,7 +62,7 @@ class CompiledBatchFactoryImpl @Inject constructor(
 
     fun compile(batch: GradingBatch): CompiledBatch {
         val libraries = runtimeJarLoader.loadCompiled(batch.libraries)
-        val commonTransformerApplier = applierOf(commonClassTransformer)
+        val commonTransformerApplier = applierOf(Supplier { commonClassTransformer })
         val graders: List<GraderJarImpl> = batch.graders.compile(
             commonTransformerApplier,
             libraries,
@@ -113,7 +114,7 @@ class CompiledBatchFactoryImpl @Inject constructor(
 
         return sequenceOf(
             createApplier(ClassTransformerOrder.PRE),
-            applierOf(SubmissionVerificationTransformer(), commonClassTransformer),
+            applierOf(Supplier { SubmissionVerificationTransformer() }, Supplier { commonClassTransformer }),
             createApplier(ClassTransformerOrder.DEFAULT),
         ).reduce { a, b -> a + b }
     }

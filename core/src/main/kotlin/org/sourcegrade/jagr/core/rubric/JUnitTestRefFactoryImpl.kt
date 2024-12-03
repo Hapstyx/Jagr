@@ -42,7 +42,7 @@ class JUnitTestRefFactoryImpl @Inject constructor(
             ofClass(clazzSupplier.call())
         } catch (e: Throwable) {
             logger.error("Could not create JUnitClassTestRef :: ${e::class.qualifiedName}: ${e.message}")
-            JUnitNoOpTestRef
+            JUnitNoOpTestRef(e)
         }
     }
 
@@ -53,7 +53,7 @@ class JUnitTestRefFactoryImpl @Inject constructor(
             ofMethod(methodSupplier.call())
         } catch (e: Throwable) {
             logger.error("Could not create JUnitMethodTestRef :: ${e::class.qualifiedName}: ${e.message}")
-            JUnitNoOpTestRef
+            JUnitNoOpTestRef(e)
         }
     }
 
@@ -61,11 +61,11 @@ class JUnitTestRefFactoryImpl @Inject constructor(
     override fun or(vararg testRefs: JUnitTestRef): JUnitTestRef = Or(*testRefs)
     override fun not(testRef: JUnitTestRef): JUnitTestRef = Not(testRef)
 
-    object JUnitNoOpTestRef : JUnitTestRef {
-        class NoOpFailedError : AssertionFailedError("Failed to evaluate test")
+    class JUnitNoOpTestRef(val t: Throwable) : JUnitTestRef {
+        class NoOpFailedError(t: Throwable) : AssertionFailedError("Failed to evaluate test. Cause: $t")
 
         override operator fun get(testResults: Map<TestIdentifier, TestExecutionResult>): TestExecutionResult =
-            TestExecutionResult.aborted(NoOpFailedError())
+            TestExecutionResult.aborted(NoOpFailedError(t))
     }
 
     class Default(private val testSource: TestSource) : JUnitTestRef {

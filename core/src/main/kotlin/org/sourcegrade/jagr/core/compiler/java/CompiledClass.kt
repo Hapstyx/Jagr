@@ -42,7 +42,7 @@ sealed class CompiledClass(
     abstract val bytecode: ByteArray
     val reader: ClassReader by lazy { ClassReader(bytecode) }
 
-    fun transformed(bytecode: ByteArray): CompiledClass = Existing(className, bytecode, source)
+    fun transformed(bytecode: ByteArray): CompiledClass = Existing(ClassReader(bytecode).className.replace('/', '.'), bytecode, source)
 
     class Runtime(className: String) : CompiledClass(className) {
         private val outputStream = ByteArrayOutputStream()

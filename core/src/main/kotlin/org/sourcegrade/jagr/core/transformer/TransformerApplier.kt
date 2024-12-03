@@ -27,6 +27,7 @@ import org.sourcegrade.jagr.api.testing.ClassTransformer
 import org.sourcegrade.jagr.api.testing.ClassTransformerOrder
 import org.sourcegrade.jagr.core.compiler.java.CompiledClass
 import org.sourcegrade.jagr.core.compiler.java.JavaCompiledContainer
+import java.util.function.Supplier
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.javaMethod
 
@@ -52,25 +53,29 @@ private class TransformerApplierImpl(private val transformer: ClassTransformer) 
     )
 }
 
-private class MultiTransformerApplierImpl(private vararg val transformers: ClassTransformer) : TransformationApplier {
+private class MultiTransformerApplierImpl(private vararg val transformers: Supplier<ClassTransformer>) : TransformationApplier {
     override fun transform(result: JavaCompiledContainer, classLoader: ClassLoader): JavaCompiledContainer {
         var classes = result.runtimeResources.classes
         for (transformer in transformers) {
-            classes = transformer.transform(classes, classLoader)
+            val classTransformer = transformer.get()
+            val transformedClasses: MutableMap<String, CompiledClass> = mutableMapOf()
+            transformedClasses += classTransformer.transform(classes, classLoader)
+            transformedClasses += classTransformer.injectClasses().mapValues { (name, bytecode) -> CompiledClass.Existing(name, bytecode) }
+            classes = transformedClasses
         }
         return result.copy(runtimeResources = result.runtimeResources.copy(classes = classes))
     }
 }
 
-fun applierOf(vararg transformers: ClassTransformer): TransformationApplier {
+fun applierOf(vararg transformers: Supplier<ClassTransformer>): TransformationApplier {
     return when (transformers.size) {
         0 -> NoOpTransformerAppliedImpl
-        1 -> TransformerApplierImpl(transformers[0])
+        1 -> TransformerApplierImpl(transformers[0].get())
         else -> MultiTransformerApplierImpl(*transformers)
     }
 }
 
-fun Map<ClassTransformerOrder, List<ClassTransformer>>.createApplier(
+fun Map<ClassTransformerOrder, List<Supplier<ClassTransformer>>>.createApplier(
     order: ClassTransformerOrder,
     predicate: (JavaCompiledContainer) -> Boolean,
 ): TransformationApplier {
@@ -81,9 +86,10 @@ fun Map<ClassTransformerOrder, List<ClassTransformer>>.createApplier(
 }
 
 fun ClassTransformer.transform(classes: Map<String, CompiledClass>, classLoader: ClassLoader): Map<String, CompiledClass> {
-    return classes.mapValues { (_, compiledClass) ->
-        compiledClass.transformed(transform(compiledClass.bytecode, classLoader))
-    }
+    return classes.map { (_, compiledClass) ->
+        val transformedClass = compiledClass.transformed(transform(compiledClass.bytecode, classLoader))
+        transformedClass.className to transformedClass
+    }.toMap()
 }
 
 fun ClassTransformer.transform(byteArray: ByteArray, classLoader: ClassLoader): ByteArray {
