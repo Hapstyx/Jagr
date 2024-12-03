@@ -57,7 +57,11 @@ private class MultiTransformerApplierImpl(private vararg val transformers: Suppl
     override fun transform(result: JavaCompiledContainer, classLoader: ClassLoader): JavaCompiledContainer {
         var classes = result.runtimeResources.classes
         for (transformer in transformers) {
-            classes = transformer.get().transform(classes, classLoader)
+            val classTransformer = transformer.get()
+            val transformedClasses: MutableMap<String, CompiledClass> = mutableMapOf()
+            transformedClasses += classTransformer.transform(classes, classLoader)
+            transformedClasses += classTransformer.injectClasses().mapValues { (name, bytecode) -> CompiledClass.Existing(name, bytecode) }
+            classes = transformedClasses
         }
         return result.copy(runtimeResources = result.runtimeResources.copy(classes = classes))
     }

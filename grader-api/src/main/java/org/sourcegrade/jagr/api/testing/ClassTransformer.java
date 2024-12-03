@@ -24,6 +24,9 @@ import org.jetbrains.annotations.ApiStatus;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
+import java.util.Collections;
+import java.util.Map;
+
 /**
  * Used to transform classes in submissions.
  *
@@ -83,6 +86,10 @@ public interface ClassTransformer {
      */
     default int getWriterFlags() {
         return 0;
+    }
+
+    default Map<String, byte[]> injectClasses() {
+        return Collections.emptyMap();
     }
 
     @ApiStatus.Internal
