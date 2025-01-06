@@ -55,7 +55,7 @@ val projectVersion = file("version").readLines().first()
 project.extra["apiVersion"] = projectVersion.replace("\\.[1-9]\\d*-SNAPSHOT|\\.0|\\.\\d*\$".toRegex(), "")
 
 allprojects {
-    apply(plugin = "org.sourcegrade.style")
+//    apply(plugin = "org.sourcegrade.style")
 
     group = "org.sourcegrade"
     version = projectVersion
